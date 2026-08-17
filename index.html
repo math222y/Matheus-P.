@@ -1,86 +1,268 @@
-# ======================================================
-# GABARITOQUEST: Plataforma Gamificada de Diagnóstico
-# Arquitetura de Serviços e Rotas
-# ======================================================
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GabaritoQuest - Plataforma Gamificada</title>
+  <style>
+    :root {
+      --bg-color: #f4f6f9;
+      --primary: #4a6fa5;
+      --accent: #ff9f1c;
+      --success: #2ec4b6;
+      --danger: #e71d36;
+      --card-bg: #ffffff;
+      --text: #2b2d42;
+    }
 
-class GabaritoQuestApp:
-    def __init__(self):
-        self.bd_alunos = []
-        self.bd_provas = []
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
 
-    # --------------------------------------------------
-    # 1. PROCESSAMENTO DE GABARITO (Lado do Professor)
-    # --------------------------------------------------
-    def processar_gabarito_turma(self, imagem_gabarito, gabarito_oficial):
-        """
-        Recebe a imagem do gabarito, faz a leitura óptica (OMR)
-        e gera o mapa de diagnóstico para o planejamento docente.
-        """
-        respostas_aluno = self.extrair_respostas_omr(imagem_gabarito)
-        resultado = []
-        habilidades_defasadas = []
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
 
-        for q in gabarito_oficial:
-            num_questao = q["numero"]
-            resposta_correta = q["resposta"]
-            habilidade_bncc = q["habilidade"]
+    h1 {
+      color: var(--primary);
+      margin-bottom: 5px;
+    }
 
-            if respostas_aluno.get(num_questao) == resposta_correta:
-                resultado.append({"questao": num_questao, "status": "CORRETO", "xp": 50})
-            else:
-                resultado.append({"questao": num_questao, "status": "INCORRETO", "xp": 0})
-                habilidades_defasadas.append(habilidade_bncc)
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
 
-        # Diagnóstico para o professor redirecionar a aula
-        relatorio_docente = {
-            "desempenho_geral": f"{(len(resultado) - len(habilidades_defasadas)) / len(gabarito_oficial) * 100}%",
-            "temas_para_revisar": list(set(habilidades_defasadas)),
-            "sugestao_intervencao": "Agrupar turma por habilidades não consolidadas."
-        }
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
 
-        return resultado, relatorio_docente
+    .panel {
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
 
-    # --------------------------------------------------
-    # 2. MODO JOGO (Lado do Estudante)
-    # --------------------------------------------------
-    def iniciar_fase_reciclagem(self, aluno_id, questoes_incorretas):
-        """
-        Converte as questões erradas em uma 'Quest de Recuperação'
-        com dicas pedagógicas para aprendizado pelo erro.
-        """
-        questes_jogo = []
-        for q in questoes_incorretas:
-            questes_jogo.append({
-                "id_questao": q["numero"],
-                "desafio": f"Missão de Recuperação - Questão {q['numero']}",
-                "dica_pedagogica": q["dica_estudo"],
-                "recompensa_xp": 100,
-                "status": "BLOQUEADO_ATÉ_REVISÃO"
-            })
-        
-        return {
-            "aluno_id": aluno_id,
-            "status_jornada": "Em Progresso",
-            "missoes_pendentes": questes_jogo
-        }
+    .panel h2 {
+      border-bottom: 2px solid var(--bg-color);
+      padding-bottom: 10px;
+      margin-top: 0;
+    }
 
-    # --------------------------------------------------
-    # MÉTODOS AUXILIARES (Simulados)
-    # --------------------------------------------------
-    def extrair_respostas_omr(self, imagem):
-        # Simulação de leitura de imagem/PDF via visão computacional
-        return {1: "A", 2: "C", 3: "B", 4: "D", 5: "A"}
+    .btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
 
+    .btn:hover {
+      opacity: 0.9;
+    }
 
-# Exemplo de execução da estrutura do código
-if __name__ == "__main__":
-    app = GabaritoQuestApp()
+    .btn-game {
+      background-color: var(--accent);
+    }
+
+    .results-list, .quest-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .item-result {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .status-correto {
+      background-color: rgba(46, 196, 182, 0.15);
+      color: #1b7a71;
+    }
+
+    .status-incorreto {
+      background-color: rgba(231, 29, 54, 0.15);
+      color: #a81325;
+    }
+
+    .badge-xp {
+      background-color: var(--accent);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+
+    .quest-card {
+      border: 2px dashed var(--accent);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 12px;
+      background-color: #fff9f0;
+    }
+
+    .quest-card h4 {
+      margin: 0 0 8px 0;
+      color: #d47a00;
+    }
+
+    .hint {
+      font-size: 0.9rem;
+      color: #555;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>GabaritoQuest</h1>
+    <p>Plataforma Gamificada de Diagnóstico e Correção Pedagógica</p>
+  </header>
+
+  <div class="container">
     
-    # Gabarito da avaliação cadastrado pelo docente
-    gabarito_mestre = [
-        {"numero": 1, "resposta": "A", "habilidade": "EF06MA01 - Números Naturais", "dica_estudo": "Lembre da ordem de grandeza."},
-        {"numero": 2, "resposta": "B", "habilidade": "EF06MA02 - Divisibilidade", "dica_estudo": "Repasse as regras de pares e ímpares."},
-        {"numero": 3, "resposta": "B", "habilidade": "EF06MA03 - Frações", "dica_estudo": "Simplifique os denominadores primeiro."}
-    ]
+    <!-- PAINEL DO PROFESSOR -->
+    <div class="panel">
+      <h2>Painel do Professor</h2>
+      <p>Simular leitura de gabarito (OMR) e diagnóstico da turma:</p>
+      <button class="btn" onclick="processarGabarito()">Processar Gabarito</button>
 
-    print("=== MÓDULO INICIALIZADO COM SUCESSO ===")
+      <div id="painel-professor-resultado" style="margin-top: 20px; display: none;">
+        <h3>Resultado das Questões</h3>
+        <ul id="lista-resultados" class="results-list"></ul>
+
+        <h3>Diagnóstico da Turma</h3>
+        <p><strong>Aproveitamento:</strong> <span id="diag-desempenho"></span></p>
+        <p><strong>Habilidades para Revisar:</strong></p>
+        <ul id="diag-habilidades"></ul>
+        <p><strong>Intervenção Recomendada:</strong> <span id="diag-sugestao"></span></p>
+      </div>
+    </div>
+
+    <!-- PAINEL DO ALUNO (MODO JOGO) -->
+    <div class="panel">
+      <h2>Modo Jogo (Aluno)</h2>
+      <p>Missões de recuperação geradas a partir dos erros:</p>
+      
+      <div id="painel-aluno-jogos">
+        <p><em>Processe um gabarito primeiro para gerar as missões do aluno.</em></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Configuração do Gabarito Mestre (BNCC e Dicas)
+    const gabaritoMestre = [
+      { numero: 1, resposta: "A", habilidade: "EF06MA01 - Números Naturais", dica_estudo: "Lembre da ordem de grandeza dos números." },
+      { numero: 2, resposta: "B", habilidade: "EF06MA02 - Divisibilidade", dica_estudo: "Repasse as regras de pares e ímpares." },
+      { numero: 3, resposta: "B", habilidade: "EF06MA03 - Frações", dica_estudo: "Simplifique os denominadores primeiro." },
+      { numero: 4, resposta: "D", habilidade: "EF06MA04 - Porcentagem", dica_estudo: "Calcule a fração de 100." },
+      { numero: 5, resposta: "C", habilidade: "EF06MA05 - Geometria", dica_estudo: "Analise os vértices da figura." }
+    ];
+
+    // Simulação da leitura de respostas do aluno (OMR)
+    function extrairRespostasOMR() {
+      return { 1: "A", 2: "C", 3: "B", 4: "D", 5: "A" }; // Errou Q2 e Q5
+    }
+
+    // 1. Lógica do Professor: Processar e Diagnosticar
+    function processarGabarito() {
+      const respostasAluno = extrairRespostasOMR();
+      const resultado = [];
+      const habilidadesDefasadas = [];
+      const questoesIncorretas = [];
+
+      gabaritoMestre.forEach(q => {
+        const respAluno = respostasAluno[q.numero];
+        const eCorreto = respAluno === q.resposta;
+
+        if (eCorreto) {
+          resultado.push({ numero: q.numero, status: "CORRETO", xp: 50 });
+        } else {
+          resultado.push({ numero: q.numero, status: "INCORRETO", xp: 0 });
+          habilidadesDefasadas.push(q.habilidade);
+          questoesIncorretas.push(q);
+        }
+      });
+
+      // Exibir resultados do professor no DOM
+      const listaUl = document.getElementById("lista-resultados");
+      listaUl.innerHTML = "";
+      
+      resultado.forEach(r => {
+        const li = document.createElement("li");
+        li.className = `item-result ${r.status === 'CORRETO' ? 'status-correto' : 'status-incorreto'}`;
+        li.innerHTML = `<span>Questão ${r.numero}: ${r.status}</span> <span class="badge-xp">+${r.xp} XP</span>`;
+        listaUl.appendChild(li);
+      });
+
+      // Cálculo e relatório
+      const percentual = ((resultado.length - habilidadesDefasadas.length) / gabaritoMestre.length) * 100;
+      document.getElementById("diag-desempenho").innerText = `${percentual.toFixed(0)}%`;
+      
+      const habUl = document.getElementById("diag-habilidades");
+      habUl.innerHTML = "";
+      [...new Set(habilidadesDefasadas)].forEach(hab => {
+        const li = document.createElement("li");
+        li.innerText = hab;
+        habUl.appendChild(li);
+      });
+
+      document.getElementById("diag-sugestao").innerText = "Agrupar turma por habilidades não consolidadas.";
+      document.getElementById("painel-professor-resultado").style.display = "block";
+
+      // Atualizar área do aluno com as missões geradas
+      gerarMissoesAluno(questoesIncorretas);
+    }
+
+    // 2. Lógica do Aluno: Modo Jogo / Missões de Recuperação
+    function gerarMissoesAluno(questoesIncorretas) {
+      const painelAluno = document.getElementById("painel-aluno-jogos");
+      painelAluno.innerHTML = "";
+
+      if (questoesIncorretas.length === 0) {
+        painelAluno.innerHTML = "<p>Parabéns! Você acertou todas as questões!</p>";
+        return;
+      }
+
+      const titulo = document.createElement("h3");
+      titulo.innerText = "Quests de Recuperação Liberadas!";
+      painelAluno.appendChild(titulo);
+
+      questoesIncorretas.forEach(q => {
+        const card = document.createElement("div");
+        card.className = "quest-card";
+        card.innerHTML = `
+          <h4>Missão: Recuperar Questão ${q.numero}</h4>
+          <p class="hint"><strong>Dica Pedagógica:</strong> ${q.dica_estudo}</p>
+          <button class="btn btn-game" onclick="alert('Iniciando desafio da Questão ${q.numero}!')">
+            Refazer Desafio (+100 XP)
+          </button>
+        `;
+        painelAluno.appendChild(card);
+      });
+    }
+  </script>
+
+</body>
+</html>
