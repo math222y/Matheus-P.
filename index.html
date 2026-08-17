@@ -1,0 +1,86 @@
+# ======================================================
+# GABARITOQUEST: Plataforma Gamificada de Diagnóstico
+# Arquitetura de Serviços e Rotas
+# ======================================================
+
+class GabaritoQuestApp:
+    def __init__(self):
+        self.bd_alunos = []
+        self.bd_provas = []
+
+    # --------------------------------------------------
+    # 1. PROCESSAMENTO DE GABARITO (Lado do Professor)
+    # --------------------------------------------------
+    def processar_gabarito_turma(self, imagem_gabarito, gabarito_oficial):
+        """
+        Recebe a imagem do gabarito, faz a leitura óptica (OMR)
+        e gera o mapa de diagnóstico para o planejamento docente.
+        """
+        respostas_aluno = self.extrair_respostas_omr(imagem_gabarito)
+        resultado = []
+        habilidades_defasadas = []
+
+        for q in gabarito_oficial:
+            num_questao = q["numero"]
+            resposta_correta = q["resposta"]
+            habilidade_bncc = q["habilidade"]
+
+            if respostas_aluno.get(num_questao) == resposta_correta:
+                resultado.append({"questao": num_questao, "status": "CORRETO", "xp": 50})
+            else:
+                resultado.append({"questao": num_questao, "status": "INCORRETO", "xp": 0})
+                habilidades_defasadas.append(habilidade_bncc)
+
+        # Diagnóstico para o professor redirecionar a aula
+        relatorio_docente = {
+            "desempenho_geral": f"{(len(resultado) - len(habilidades_defasadas)) / len(gabarito_oficial) * 100}%",
+            "temas_para_revisar": list(set(habilidades_defasadas)),
+            "sugestao_intervencao": "Agrupar turma por habilidades não consolidadas."
+        }
+
+        return resultado, relatorio_docente
+
+    # --------------------------------------------------
+    # 2. MODO JOGO (Lado do Estudante)
+    # --------------------------------------------------
+    def iniciar_fase_reciclagem(self, aluno_id, questoes_incorretas):
+        """
+        Converte as questões erradas em uma 'Quest de Recuperação'
+        com dicas pedagógicas para aprendizado pelo erro.
+        """
+        questes_jogo = []
+        for q in questoes_incorretas:
+            questes_jogo.append({
+                "id_questao": q["numero"],
+                "desafio": f"Missão de Recuperação - Questão {q['numero']}",
+                "dica_pedagogica": q["dica_estudo"],
+                "recompensa_xp": 100,
+                "status": "BLOQUEADO_ATÉ_REVISÃO"
+            })
+        
+        return {
+            "aluno_id": aluno_id,
+            "status_jornada": "Em Progresso",
+            "missoes_pendentes": questes_jogo
+        }
+
+    # --------------------------------------------------
+    # MÉTODOS AUXILIARES (Simulados)
+    # --------------------------------------------------
+    def extrair_respostas_omr(self, imagem):
+        # Simulação de leitura de imagem/PDF via visão computacional
+        return {1: "A", 2: "C", 3: "B", 4: "D", 5: "A"}
+
+
+# Exemplo de execução da estrutura do código
+if __name__ == "__main__":
+    app = GabaritoQuestApp()
+    
+    # Gabarito da avaliação cadastrado pelo docente
+    gabarito_mestre = [
+        {"numero": 1, "resposta": "A", "habilidade": "EF06MA01 - Números Naturais", "dica_estudo": "Lembre da ordem de grandeza."},
+        {"numero": 2, "resposta": "B", "habilidade": "EF06MA02 - Divisibilidade", "dica_estudo": "Repasse as regras de pares e ímpares."},
+        {"numero": 3, "resposta": "B", "habilidade": "EF06MA03 - Frações", "dica_estudo": "Simplifique os denominadores primeiro."}
+    ]
+
+    print("=== MÓDULO INICIALIZADO COM SUCESSO ===")
